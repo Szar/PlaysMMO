@@ -6,8 +6,8 @@ import Phaser, {
 	Scene
 } from 'phaser';
 import io from 'socket.io-client';
-import mapImg from "../assets/sprites/maps/DS DSi - Digimon World DS - Digi-Farm Default.png";
-import statusImg from "../assets/sprites/maps/DS DSi - Digimon World DS - Digi-Farm Default.png";
+import mapImg from "../assets/sprites/maps/map_01.png";
+//import statusImg from "../assets/sprites/maps/01.png";
 import player01 from "../assets/sprites/players/01.png";
 import player02 from "../assets/sprites/players/02.png";
 
@@ -21,12 +21,13 @@ var style = {
 	backgroundColor: "#000000"
 };
 var players = {},
-	speed = 100,
+	speed = 110,
+	frameRate = 7,
 	p = {},
 	g,
 	start = {
-		x: 128,
-		y: 128
+		x: 153,
+		y: 70
 	},
 	text_margin = 25,
 	captured_auth = null,
@@ -70,7 +71,7 @@ function create() {
 		x: 0,
 		y: 0,
 	}
-	this.physics.world.setBounds(0, 0, 800, 600);
+	this.physics.world.setBounds(0, 0, 800, 574);
 	this.add.image(800 / 2, 600 / 2, 'map')
 	this.player = this.physics.add.sprite(start.x, start.y, 'player_01', this.isoGroup)
 	this.text = this.add.text(start.x, start.y, uname, style)
@@ -85,7 +86,7 @@ function create() {
 				key: skin_files[i]["name"],
 				frame: 3
 			}],
-			frameRate: 5,
+			frameRate: frameRate,
 		});
 		this.anims.create({
 			key: 'back_stand',
@@ -93,7 +94,7 @@ function create() {
 				key: skin_files[i]["name"],
 				frame: 0
 			}],
-			frameRate: 5,
+			frameRate: frameRate,
 		});
 		this.anims.create({
 			key: 'walk',
@@ -101,7 +102,7 @@ function create() {
 				start: 3,
 				end: 5
 			}),
-			frameRate: 5,
+			frameRate: frameRate,
 			repeat: -1
 		});
 		this.anims.create({
@@ -110,7 +111,7 @@ function create() {
 				start: 0,
 				end: 2
 			}),
-			frameRate: 5,
+			frameRate: frameRate,
 			repeat: -1
 		});
 	}
@@ -150,7 +151,8 @@ function move_player(d, sprite, text) {
 	//text.x = d.direction.prev_x
 	//text.y = d.direction.prev_y
 	text.setPosition(d.direction.prev_x - (text.width / 2), d.direction.prev_y - text_margin);
-
+	sprite.depth = sprite.y;
+	text.depth = sprite.y;
 
 }
 
@@ -215,6 +217,8 @@ function update() {
 		var u = p
 		u.direction = this.direction
 		socket.emit('move', u);
+		this.player.depth = this.player.y;
+		this.text.depth = this.player.y;
 	}
 
 }
@@ -228,7 +232,7 @@ class PhaserGame extends Phaser.Game {
 			parent: 'game-container',
 			width: 800,
 			height: 600,
-			zoom: 2,
+			zoom: 1,
 			pixelArt: true,
 			physics: {
 				default: 'arcade',
