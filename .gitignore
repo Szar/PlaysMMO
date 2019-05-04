@@ -65,3 +65,5 @@ conf/
 package-lock.json
 yarn.lock
 .DS_Store
+config.js
+nohup.out
