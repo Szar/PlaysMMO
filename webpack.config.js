@@ -1,9 +1,9 @@
 const fs = require('fs')
 const path = require("path")
 const webpack = require("webpack")
-
 const CleanWebpackPlugin = require('clean-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
+var config = require('./config');
 
 // defines where the bundle file will live
 const bundlePath = path.resolve(__dirname, "dist/")
@@ -106,7 +106,7 @@ module.exports = (_env,argv)=> {
       headers: {
         'Access-Control-Allow-Origin': '*'
       },
-      port: 8080
+      port: config.react_port
     }
     if(fs.existsSync(path.resolve(__dirname,'conf/server.key'))){
       config.devServer.https = {
