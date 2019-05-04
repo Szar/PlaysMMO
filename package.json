@@ -36,6 +36,7 @@
   "dependencies": {
     "jsonwebtoken": "^8.3.0",
     "phaser": "^3.16.2",
+    "phaser-matter-collision-plugin": "^0.10.2",
     "phaser-plugin-isometric": "^0.9.2",
     "phaser3-plugin-isometric": "^0.0.7",
     "react": "^16.3.2",
