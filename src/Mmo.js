@@ -10,7 +10,7 @@ import mapImg from "../assets/sprites/maps/map_01.png";
 //import statusImg from "../assets/sprites/maps/01.png";
 import player01 from "../assets/sprites/players/01.png";
 import player02 from "../assets/sprites/players/02.png";
-var config = require('./config');
+var config = require('../config');
 
 const socket = io('http://'+config.server_host+':'+config.server_port+'/');
 var style = {
