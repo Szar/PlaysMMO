@@ -100,8 +100,9 @@ module.exports = (_env,argv)=> {
 
   if(argv.mode==='development'){
     config.devServer = {
-      contentBase: path.join(__dirname,'public'),
-      host:argv.devrig ? 'localhost.rig.twitch.tv' : 'localhost',
+	  contentBase: path.join(__dirname,'public'),
+	  disableHostCheck: true,
+      host: '0.0.0.0',
       headers: {
         'Access-Control-Allow-Origin': '*'
       },

@@ -11,7 +11,7 @@ import mapImg from "../assets/sprites/maps/map_01.png";
 import player01 from "../assets/sprites/players/01.png";
 import player02 from "../assets/sprites/players/02.png";
 
-const socket = io('http://localhost:8000/');
+const socket = io('http://18.212.66.170:8000/');
 var style = {
 	font: "8px Arial",
 	fill: "#ffffff",
