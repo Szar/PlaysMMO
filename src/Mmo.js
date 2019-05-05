@@ -24,7 +24,7 @@ var style = {
 	backgroundColor: "#000000"
 };
 var players = {},
-	default_speed = 110,
+	default_speed = 100,
 	speed = default_speed,
 	frameRate = 7,
 	p = {},
@@ -347,8 +347,8 @@ function update() {
 		}
 		this.x += this.direction.x * speed;
 		this.y += this.direction.y * speed;
-		this.player.body.velocity.x = this.direction.x * speed * 0.5;
-		this.player.body.velocity.y = this.direction.y * speed * 0.3;
+		this.player.body.velocity.x = this.direction.x * speed
+		this.player.body.velocity.y = this.direction.y * speed * 0.5;
 	} else {
 		if (this.direction.d == "se" || this.direction.d == "sw") {
 			this.player.anims.play('stand', true);
