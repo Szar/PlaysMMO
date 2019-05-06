@@ -7,7 +7,6 @@ import Phaser, {
 } from 'phaser';
 import io from 'socket.io-client';
 import mapImg from "../assets/sprites/maps/map_01.png";
-//import statusImg from "../assets/sprites/maps/01.png";
 import player01 from "../assets/sprites/players/01.png";
 import player02 from "../assets/sprites/players/02.png";
 import mapJSON from "../assets/tilesets/tileset.json";
@@ -41,7 +40,8 @@ var players = {},
 	d = 0,
 	tileWidthHalf,
 	tileHeightHalf,
-	water = []
+	water = [],
+	skin_id = 0;
 
 var skin_files = [{
 		"name": "player_01",
@@ -60,9 +60,7 @@ function getRandomInt(min, max) {
 }
 
 function preload() {
-	//this.load.json('tileset', mapJSON);
 	this.load.atlas('tileset', mapPng, mapJSON);
-	//this.load.image('map', mapImg);
 	for (let i = 0; i < skin_files.length; i++) {
 		this.load.spritesheet(skin_files[i]["name"],
 			skin_files[i]["file"], {
@@ -80,12 +78,13 @@ function preload() {
 
 }
 
-
-
 function create() {
+	this.skin = skin_files[skin_id]["name"]
 	socket.emit('newplayer', {
 		start: start,
+		skin: this.skin
 	});
+	
 	this.direction = {
 		prev_x: 0,
 		prev_y: 0,
@@ -93,15 +92,15 @@ function create() {
 		y: 0,
 	}
 	this.physics.world.setBounds(0, 0, window.innerWidth, window.innerHeight);
-	//this.add.image(window.innerWidth / 2, window.innerHeight / 2, 'map')
-	this.player = this.physics.add.sprite(start.x, start.y, 'player_01')
+
+	this.player = this.physics.add.sprite(start.x, start.y, this.skin)
 		.setSize(20, 15)
 		.setOffset((32-20)/2, 44-15)  
 	this.text = this.add.text(start.x, start.y, uname, style)
-	//this.player.setCollideWorldBounds(true);
+
 	for (let i = 0; i < skin_files.length; i++) {
 		this.anims.create({
-			key: 'stand',
+			key: skin_files[i]["name"]+'stand',
 			frames: [{
 				key: skin_files[i]["name"],
 				frame: 3
@@ -109,7 +108,7 @@ function create() {
 			frameRate: frameRate,
 		});
 		this.anims.create({
-			key: 'back_stand',
+			key: skin_files[i]["name"]+'back_stand',
 			frames: [{
 				key: skin_files[i]["name"],
 				frame: 0
@@ -117,7 +116,7 @@ function create() {
 			frameRate: frameRate,
 		});
 		this.anims.create({
-			key: 'walk',
+			key: skin_files[i]["name"]+'walk',
 			frames: this.anims.generateFrameNumbers(skin_files[i]["name"], {
 				start: 3,
 				end: 5
@@ -126,7 +125,7 @@ function create() {
 			repeat: -1
 		});
 		this.anims.create({
-			key: 'back_walk',
+			key: skin_files[i]["name"]+'back_walk',
 			frames: this.anims.generateFrameNumbers(skin_files[i]["name"], {
 				start: 0,
 				end: 2
@@ -135,9 +134,8 @@ function create() {
 			repeat: -1
 		});
 	}
-	//this.load.spritesheet(skin_files[i]["name"],
 
-	this.player.anims.play('stand', true);
+	this.player.anims.play(this.skin+'stand', true);
 	if (captured_auth != null) {
 		socket.emit('updateplayer', captured_auth);
 	}
@@ -205,14 +203,6 @@ function buildBlocks(game) {
 			console.log(n_blocks)
 			var tile_type = y==0 || x==0 || y==n_blocks || x==n_blocks ? 'bush1' : 'grass';
 			var group = game.ground;
-			// this bit would've been so much cleaner if I'd ordered the tileArray better, but I can't be bothered fixing it :P
-			//tile = game.add.isoSprite(x, y, tileArray[tiles[i]].match("water") ? 0 : game.rnd.pick([2, 3, 4]), 'tileset', tileArray[tiles[i]], isoGroup);
-			//tile = blocks.create(x, y, tileArray[tiles[i]].match("water") ? 0 : game.rnd.pick([2, 3, 4]), 'tileset', tileArray[tiles[i]]);
-			//tile.anchor.set(0.5, 1);
-			//tile.smoothed = false;
-			//tile.body.moves = false;
-			//console.log(tileArray[tiles[i]].match("water") ? 0 : getRandomInt(2,4))
-			// 38 64
 			var tx = (x - y) * tileWidthHalf - (blocks_size-window.innerWidth);
 			var ty = (x + y) * tileHeightHalf + (blocks_size-window.innerHeight)/tileHeightHalf;
 			if(tile_type=='bush1') {
@@ -220,32 +210,15 @@ function buildBlocks(game) {
 				ty = ty - 7;
 				group = game.blocks
 			}
-			tile = group.create(centerX + tx, centerY + ty, 'tileset', tile_type); //tileArray[tiles[i]]
+			tile = group.create(centerX + tx, centerY + ty, 'tileset', tile_type);
 			tile.depth = -100;
 			if(tile_type=='bush1') {
-				tile.setSize(64, 32).setOffset(0, 13)   //
+				tile.setSize(64, 32).setOffset(0, 13)  
 				if(y==n_blocks || x==n_blocks) {
 					tile.depth = tile.y-tileheight;
 				}
 				
 			}
-			
-			/*if(tile_type=='bush1') {
-				var w = game.blocks.create(centerX + tx, centerY + ty, null, null);
-				w.body.width = 64;
-                w.body.height = 32;
-			}*/
-			//tile = game.add.image(centerX + tx, centerY + ty, 'tileset', tileArray[tiles[i]]);
-			//tile = game.physics.add.sprite(x, y, , 'tileset', tileArray[tiles[i]]),
-			//tile = game.physics.add.image(x, y, tileArray[tiles[i]].match("water") ? 0 : getRandomInt(2,4), 'tileset', tileArray[tiles[i]]),
-			//tile.depth = y-tileHeightHalf*2;
-			/*if (tiles[i] === 4) {
-				tile.isoZ += 6;
-			}
-			if (tiles[i] <= 10 && (tiles[i] < 5 || tiles[i] > 6)) {
-				tile.scale.x = game.rnd.pick([-1, 1]);
-			}
-			*/
 			if (tiles[i] === 0) {
 				water.push(tile);
 			}
@@ -265,22 +238,19 @@ function move_player(d, sprite, text) {
 
 	if (d.direction.y !== 0) {
 		if (d.direction.d == "se" || d.direction.d == "sw") {
-			sprite.anims.play('walk', true);
+			sprite.anims.play(d.skin+'walk', true);
 		} else {
-			sprite.anims.play('back_walk', true);
+			sprite.anims.play(d.skin+'back_walk', true);
 		}
 	} else {
 		if (d.direction.d == "se" || d.direction.d == "sw") {
-			sprite.anims.play('stand', true);
+			sprite.anims.play(d.skin+'stand', true);
 		} else {
-			sprite.anims.play('back_stand', true);
+			sprite.anims.play(d.skin+'back_stand', true);
 		}
 	}
-	console.log("=== MOVING USER ===")
-	console.log(d)
+
 	sprite.setPosition(d.direction.prev_x, d.direction.prev_y);
-	//text.x = d.direction.prev_x
-	//text.y = d.direction.prev_y
 	text.setPosition(d.direction.prev_x - (text.width / 2), d.direction.prev_y - text_margin);
 	sprite.depth = sprite.y;
 	text.depth = sprite.y;
@@ -290,14 +260,21 @@ function move_player(d, sprite, text) {
 function update() {
 	var cursors = this.input.keyboard.createCursorKeys();
 	if (this.shift.isDown) {
-		speed = 200
+		speed = 160
 	}
 	else {
 		speed = default_speed
 	}
 	if (Phaser.Input.Keyboard.JustDown(this.spacebar))
     {
-		this.player.setTexture('player_02', 0);
+		skin_id++;
+		if (skin_id>=skin_files.length) {
+			skin_id = 0;
+		}
+		this.skin = skin_files[skin_id]["name"];
+		this.player.setTexture(this.skin, 0);
+		socket.emit('updateskin', this.skin);
+		
 	}
 	if (this.direction.d == "se" || this.direction.d == "ne") {
 		this.player.flipX = true;
@@ -341,9 +318,9 @@ function update() {
 
 	if (this.direction.y !== 0) {
 		if (this.direction.d == "se" || this.direction.d == "sw") {
-			this.player.anims.play('walk', true);
+			this.player.anims.play(this.skin+'walk', true);
 		} else {
-			this.player.anims.play('back_walk', true);
+			this.player.anims.play(this.skin+'back_walk', true);
 		}
 		this.x += this.direction.x * speed;
 		this.y += this.direction.y * speed;
@@ -351,9 +328,9 @@ function update() {
 		this.player.body.velocity.y = this.direction.y * speed * 0.5;
 	} else {
 		if (this.direction.d == "se" || this.direction.d == "sw") {
-			this.player.anims.play('stand', true);
+			this.player.anims.play(this.skin+'stand', true);
 		} else {
-			this.player.anims.play('back_stand', true);
+			this.player.anims.play(this.skin+'back_stand', true);
 		}
 	}
 
@@ -385,7 +362,6 @@ class PhaserGame extends Phaser.Game {
 				default: 'arcade',
 				arcade: {
 					//debug: true,
-					//gravity: { y: 200 }
 				}
 			},
 			scene: {
@@ -410,7 +386,6 @@ class PhaserGame extends Phaser.Game {
 	}
 	moveUser(data) {
 		if (players.hasOwnProperty(data["uid"]) && p.hasOwnProperty("uid") && p["uid"] != data["uid"]) {
-
 			move_player(data, players[data["uid"]]["player"], players[data["uid"]]["text"])
 		}
 	}
@@ -420,9 +395,14 @@ class PhaserGame extends Phaser.Game {
 		}
 	}
 
+	updateSkin(data) {
+		if (players.hasOwnProperty(data["uid"]) && p.hasOwnProperty("uid") && p["uid"] != data["uid"]) {
+			players[data["uid"]]["skin"] = data["skin"]
+			players[data["uid"]]["player"].setTexture(players[data["uid"]]["skin"], 0);
+		}
+
+	}
 	// Move the rest of socket events to mmo functions
-
-
 }
 
 const game = new PhaserGame(game);
@@ -455,6 +435,8 @@ const MmoGame = function () {
 	});
 
 	socket.on('updateplayer updatename', game.updateUser);
+
+	socket.on('updateskin', game.updateSkin);
 
 	socket.on('move', game.moveUser);
 	socket.on('remove', function (data) {
