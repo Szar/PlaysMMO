@@ -131,9 +131,8 @@ function create() {
 	this.player = this.physics.add.sprite(player_coords[0], player_coords[1], this.skin)
 		.setSize(20, 15)
 		.setOffset((32 - 20) / 2, 44 - 15)
-		.setOrigin(0, 0.5)
+		//.setOrigin(0, 0.5)
 	this.player.smoothed = false;
-	//this.player.anchor.x = 0.5;
 	//c.scale.x = -1;
 	this.text = this.add.text(start.x, start.y, uname, style)
 
