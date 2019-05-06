@@ -68,3 +68,4 @@ yarn.lock
 config.js
 nohup.out
 build/
+dist/
