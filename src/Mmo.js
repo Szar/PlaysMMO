@@ -12,7 +12,9 @@ import player02 from "../assets/sprites/players/02.png";
 import player03 from "../assets/sprites/players/03.png";
 import mapJSON from "../assets/tilesets/tileset.json";
 import mapPng from "../assets/tilesets/tileset.png";
-import { encode } from "iconv-lite";
+import {
+	encode
+} from "iconv-lite";
 var config = require('../config');
 
 const socket = io('http://' + config.server_host + ':' + config.server_port + '/');
@@ -30,9 +32,10 @@ var players = {},
 	frameRate = 7,
 	p = {},
 	g,
+	start_range = 30,
 	start = {
-		x: 0,
-		y: 0
+		x: getRandomInt(-start_range,start_range),
+		y: getRandomInt(-start_range,start_range)
 	},
 	text_margin = 25,
 	captured_auth = null,
@@ -40,9 +43,6 @@ var players = {},
 	skins = {},
 	blocks,
 	d = 0,
-	tileWidthHalf,
-	tileHeightHalf,
-	water = [],
 	skin_id = 0;
 
 var skin_files = [{
@@ -65,6 +65,156 @@ function getRandomInt(min, max) {
 	return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+
+
+function normPoint(x, y) {
+	return [x / (window.innerWidth / 2), y / (window.innerHeight / 2)]
+}
+
+function decodePoint(x, y) {
+	return [x + (window.innerWidth / 2), y + (window.innerHeight / 2)]
+}
+
+function encodePoint(x, y) {
+	return [x - (window.innerWidth / 2), y - (window.innerHeight / 2)]
+}
+
+function generateMap(n_blocks) {
+	var mapTiles = [];
+	
+	for (var y = 0; y <= n_blocks; y++) {
+		mapTiles.push([])
+		for (var x = 0; x <= n_blocks; x++) {
+			var tile = (y==n_blocks/2 && x==n_blocks/2)? 3 : (y == 0 || x == 0 || y == n_blocks || x == n_blocks)? 8 : 2;
+			mapTiles[y].push(tile)
+		}
+	}
+
+	return mapTiles;
+}
+
+function buildMap(game) {
+	var tileTypes = ['water','sand','grass','stone','wood','watersand','grasssand','sandstone','bush1','bush2','mushroom','wall','window'];
+	var tiles = [
+		[8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
+		[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+		[6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+		[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+		[5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+		[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+	];
+
+	var blocks_size = 1920,
+		tilewidth = 64,
+		tileheight = 32,
+		map_width = window.innerWidth,
+		map_height = window.innerHeight,
+		tileWidthHalf = tilewidth / 2,
+		tileHeightHalf = tileheight / 2,
+		mapwidth = map_width / tilewidth,
+		mapheight = map_height / tileheight,
+		n_blocks = Math.floor(blocks_size / tilewidth),
+		centerX = (window.innerWidth / 2),
+		centerY = ((window.innerHeight / 2)-((n_blocks*tileheight)/2))+tileheight,
+		i = 0;
+
+	generateMap(n_blocks)
+
+	for (var y = 0; y < tiles.length; y++) {
+		for (var x = 0; x < tiles[y].length; x++) {
+			var tile_type = tileTypes[tiles[y][x]];
+			
+			var group = game.ground;
+			if (blocks_size > window.innerWidth) {
+				var tx = (x - y) * tileWidthHalf - ((blocks_size - window.innerWidth) / tilewidth);
+			} else {
+				var tx = (x - y) * tileWidthHalf;
+			}
+			if (blocks_size > window.innerHeight) {
+				var ty = ((x + y) * tileHeightHalf - ((blocks_size - window.innerHeight) / tileheight));
+			} else {
+				var ty = (x + y) * tileHeightHalf;
+			}
+			if (tile_type == 'bush1' || tile_type == 'water' || tile_type=='bush2' || (y == 0 || x == 0 || y == n_blocks || x == n_blocks)) {
+				group = game.blocks
+			}
+			if (tile_type == 'bush1') {
+				ty = ty - 7;
+			}
+	
+			
+			var tile = group.create(centerX + tx, centerY + ty, 'tileset', tile_type);
+			tile.depth = -100;
+			if (tile_type == 'bush1') {
+				tile.setSize(64, 32).setOffset(0, 13)
+				if (y == n_blocks || x == n_blocks) {
+					tile.depth = tile.y - tileheight;
+				}
+
+			}
+			i++;
+		}
+	}
+	
+}
+
+function move_player(d, sprite, text) {
+	var move_coords = decodePoint(d.direction.cx, d.direction.cy)
+	d.direction.x = move_coords[0]
+	d.direction.y = move_coords[1]
+	if (d.direction.d == "se" || d.direction.d == "ne") {
+		sprite.flipX = true;
+	} else {
+		sprite.flipX = false;
+	}
+
+	if (d.direction.y !== 0) {
+		if (d.direction.d == "se" || d.direction.d == "sw") {
+			sprite.anims.play(d.skin + 'walk', true);
+		} else {
+			sprite.anims.play(d.skin + 'back_walk', true);
+		}
+	} else {
+		if (d.direction.d == "se" || d.direction.d == "sw") {
+			sprite.anims.play(d.skin + 'stand', true);
+		} else {
+			sprite.anims.play(d.skin + 'back_stand', true);
+		}
+	}
+
+	sprite.setPosition(d.direction.x, d.direction.y);
+	text.setPosition(d.direction.x - (text.width / 2), d.direction.y - text_margin);
+	sprite.depth = sprite.y;
+	text.depth = sprite.y;
+
+}
+
+
 function preload() {
 	this.load.atlas('tileset', mapPng, mapJSON);
 	for (let i = 0; i < skin_files.length; i++) {
@@ -76,37 +226,11 @@ function preload() {
 		skins[skin_files[i]["name"]] = {}
 
 	}
-
 	g = this
-	console.log(window.innerWidth / 2, window.innerHeight / 2)
-	var start_coords = encodePoint(window.innerWidth / 2, window.innerHeight / 2);
-	console.log(start_coords);
-	start.x = start_coords[0]
-	start.y = start_coords[1]
-	var decoded = decodePoint(start.x,start.y)
-	console.log(decoded);
-	console.log();
-
-	
-
-}
-
-function normPoint(x,y) {
-	return [x / (window.innerWidth/2), y / (window.innerHeight/2)]
-}
-
-function decodePoint(x,y) {
-	console.log("=== Decoded ===")
-	console.log(x,y)
-	console.log(x + (window.innerWidth/2), y + (window.innerHeight/2))
-	return [x + (window.innerWidth/2), y + (window.innerHeight/2)]
-}
-
-function encodePoint(x,y) {
-	console.log("=== Encoded ===")
-	console.log(x,y)
-	console.log(x - (window.innerWidth/2), y - (window.innerHeight/2))
-	return [x - (window.innerWidth/2), y - (window.innerHeight/2)]
+	//var start_coords = encodePoint(window.innerWidth / 2, window.innerHeight / 2);
+	//start.x = start_coords[0]
+	//start.y = start_coords[1]
+	var decoded = decodePoint(start.x, start.y)
 }
 
 function create() {
@@ -122,18 +246,12 @@ function create() {
 		x: 0,
 		y: 0,
 	}
-	this.coordinates = {
-		x: 0,
-		y: 0,
-	}
 	this.physics.world.setBounds(0, 0, window.innerWidth, window.innerHeight);
-	var player_coords = decodePoint(start.x,start.y)
+	var player_coords = decodePoint(start.x, start.y)
 	this.player = this.physics.add.sprite(player_coords[0], player_coords[1], this.skin)
 		.setSize(20, 15)
 		.setOffset((32 - 20) / 2, 44 - 15)
-		//.setOrigin(0, 0.5)
 	this.player.smoothed = false;
-	//c.scale.x = -1;
 	this.text = this.add.text(start.x, start.y, uname, style)
 
 	for (let i = 0; i < skin_files.length; i++) {
@@ -181,7 +299,7 @@ function create() {
 	this.blocks = this.physics.add.staticGroup();
 	this.ground = this.physics.add.staticGroup();
 
-	buildBlocks(this);
+	buildMap(this);
 
 	this.physics.add.collider(this.player, this.blocks);
 
@@ -189,128 +307,6 @@ function create() {
 	this.cameras.main.startFollow(this.player);
 	this.spacebar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 	this.shift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-}
-
-function getPoint(x,y) {
-	var tilewidth = 64,
-		tileheight = 32
-	tileWidthHalf = tilewidth / 2;
-	tileHeightHalf = tileheight / 2;
-	var centerX = (window.innerWidth / 2);
-	var centerY = tileHeightHalf;
-	return [centerX + x, centerY + y];
-}
-
-function buildBlocks(game) {
-	var tileArray = [];
-	tileArray[0] = 'water';
-	tileArray[1] = 'sand';
-	tileArray[2] = 'grass';
-	tileArray[3] = 'stone';
-	tileArray[4] = 'wood';
-	tileArray[5] = 'watersand';
-	tileArray[6] = 'grasssand';
-	tileArray[7] = 'sandstone';
-	tileArray[8] = 'bush1';
-	tileArray[9] = 'bush2';
-	tileArray[10] = 'mushroom';
-	tileArray[11] = 'wall';
-	tileArray[12] = 'window';
-
-	var tiles = [
-		9, 2, 1, 1, 4, 4, 1, 6, 2, 10, 2,
-		2, 6, 1, 0, 4, 4, 0, 0, 2, 2, 2,
-		6, 1, 0, 0, 4, 4, 0, 0, 8, 8, 2,
-		0, 0, 0, 0, 4, 4, 0, 0, 0, 9, 2,
-		0, 0, 0, 0, 4, 4, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 4, 4, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 4, 4, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 4, 4, 0, 0, 0, 0, 0,
-		11, 11, 12, 11, 3, 3, 11, 12, 11, 11, 11,
-		3, 7, 3, 3, 3, 3, 3, 3, 7, 3, 3,
-		7, 1, 7, 7, 3, 3, 7, 7, 1, 1, 7
-	];
-
-	var tilewidth = 64,
-		tileheight = 32,
-		map_width = window.innerWidth * 1.25,
-		map_height = window.innerHeight
-	tileWidthHalf = tilewidth / 2;
-	tileHeightHalf = tileheight / 2;
-	var mapwidth = map_width / tilewidth;
-	var mapheight = map_height / tileheight;
-	var blocks_size = 1200;
-	var n_blocks = Math.floor(blocks_size / tilewidth);
-	var i = 0,
-		tile;
-	var centerX = (window.innerWidth / 2);
-	//mapwidth * tileWidthHalf;
-	var centerY = tileHeightHalf;
-	var shape = new Phaser.Geom.Rectangle(0, 0, 64, 32);
-	for (var y = 0; y <= n_blocks; y++) {
-		for (var x = 0; x <= n_blocks; x++) {
-			var tile_type = y == 0 || x == 0 || y == n_blocks || x == n_blocks ? 'bush1' : 'grass';
-			var group = game.ground;
-			if(blocks_size>window.innerWidth) {
-				var tx = (x - y) * tileWidthHalf - ((blocks_size - window.innerWidth)/tilewidth);
-			}
-			else {
-				var tx = (x - y) * tileWidthHalf;
-			}
-			 //
-			var ty = (x + y) * tileHeightHalf + (blocks_size - window.innerHeight) / tileHeightHalf;
-			if (tile_type == 'bush1') {
-
-				ty = ty - 7;
-				group = game.blocks
-			}
-			var tile_coords = getPoint(tx,ty);
-			tile = group.create(tile_coords[0], tile_coords[1], 'tileset', tile_type);
-			tile.depth = -100;
-			if (tile_type == 'bush1') {
-				tile.setSize(64, 32).setOffset(0, 13)
-				if (y == n_blocks || x == n_blocks) {
-					tile.depth = tile.y - tileheight;
-				}
-
-			}
-			if (tiles[i] === 0) {
-				water.push(tile);
-			}
-			i++;
-		}
-	}
-}
-
-function move_player(d, sprite, text) {
-	var move_coords = decodePoint(d.direction.cx,d.direction.cy)
-	d.direction.x = move_coords[0]
-	d.direction.y = move_coords[1]
-	if (d.direction.d == "se" || d.direction.d == "ne") {
-		sprite.flipX = true;
-	} else {
-		sprite.flipX = false;
-	}
-
-	if (d.direction.y !== 0) {
-		if (d.direction.d == "se" || d.direction.d == "sw") {
-			sprite.anims.play(d.skin + 'walk', true);
-		} else {
-			sprite.anims.play(d.skin + 'back_walk', true);
-		}
-	} else {
-		if (d.direction.d == "se" || d.direction.d == "sw") {
-			sprite.anims.play(d.skin + 'stand', true);
-		} else {
-			sprite.anims.play(d.skin + 'back_stand', true);
-		}
-	}
-
-	sprite.setPosition(d.direction.x, d.direction.y);
-	text.setPosition(d.direction.x - (text.width / 2), d.direction.y - text_margin);
-	sprite.depth = sprite.y;
-	text.depth = sprite.y;
-
 }
 
 function update() {
@@ -393,12 +389,11 @@ function update() {
 		this.direction.prev_y = this.player.y
 		this.text.setPosition(this.direction.prev_x - (this.text.width / 2), this.direction.prev_y - text_margin);
 		var u = p
-		
-		var move_coords = encodePoint(this.player.x,this.player.y)
+
+		var move_coords = encodePoint(this.player.x, this.player.y)
 		u.direction = this.direction
 		u.direction.cx = move_coords[0]
 		u.direction.cy = move_coords[1]
-		//u.coordinates = encodePoint(this.direction.prev_x,this.direction.prev_y);
 		socket.emit('move', u);
 		this.player.depth = this.player.y;
 		this.text.depth = this.player.y;
