@@ -186,7 +186,7 @@ function create() {
 	this.physics.add.collider(this.player, this.blocks);
 
 
-//this.cameras.main.startFollow(this.player);
+	this.cameras.main.startFollow(this.player);
 	this.spacebar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 	this.shift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
 }
