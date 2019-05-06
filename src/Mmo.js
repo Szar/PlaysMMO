@@ -70,7 +70,7 @@ function preload() {
 	for (let i = 0; i < skin_files.length; i++) {
 		this.load.spritesheet(skin_files[i]["name"],
 			skin_files[i]["file"], {
-				frameWidth: 32,
+				frameWidth: 34,
 				frameHeight: 44
 			});
 		skins[skin_files[i]["name"]] = {}
