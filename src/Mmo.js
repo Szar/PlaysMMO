@@ -9,6 +9,7 @@ import io from 'socket.io-client';
 import mapImg from "../assets/sprites/maps/map_01.png";
 import player01 from "../assets/sprites/players/01.png";
 import player02 from "../assets/sprites/players/02.png";
+import player03 from "../assets/sprites/players/03.png";
 import mapJSON from "../assets/tilesets/tileset.json";
 import mapPng from "../assets/tilesets/tileset.png";
 var config = require('../config');
@@ -50,6 +51,10 @@ var skin_files = [{
 	{
 		"name": "player_02",
 		"file": player02
+	},
+	{
+		"name": "player_03",
+		"file": player03
 	},
 ]
 
