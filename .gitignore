@@ -67,3 +67,4 @@ yarn.lock
 .DS_Store
 config.js
 nohup.out
+build/
