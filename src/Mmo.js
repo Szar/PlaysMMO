@@ -17,7 +17,7 @@ import {
 } from "iconv-lite";
 var config = require('../config');
 
-const socket = io('https://' + config.server_host + ':' + config.server_port + '/');
+var socket
 var style = {
 	font: "8px Arial",
 	fill: "#ffffff",
@@ -34,8 +34,8 @@ var players = {},
 	g,
 	start_range = 30,
 	start = {
-		x: getRandomInt(-start_range,start_range),
-		y: getRandomInt(-start_range,start_range)
+		x: getRandomInt(-start_range, start_range),
+		y: getRandomInt(-start_range, start_range)
 	},
 	text_margin = 25,
 	captured_auth = null,
@@ -47,15 +47,18 @@ var players = {},
 
 var skin_files = [{
 		"name": "player_01",
-		"file": player01
+		"file": player01,
+		"title": "Flamedramon",
 	},
 	{
 		"name": "player_02",
-		"file": player02
+		"file": player02,
+		"title": "Gabumon",
 	},
 	{
 		"name": "player_03",
-		"file": player03
+		"file": player03,
+		"title": "Kuwagamon",
 	},
 ]
 
@@ -81,11 +84,11 @@ function encodePoint(x, y) {
 
 function generateMap(n_blocks) {
 	var mapTiles = [];
-	
+
 	for (var y = 0; y <= n_blocks; y++) {
 		mapTiles.push([])
 		for (var x = 0; x <= n_blocks; x++) {
-			var tile = (y==n_blocks/2 && x==n_blocks/2)? 3 : (y == 0 || x == 0 || y == n_blocks || x == n_blocks)? 8 : 2;
+			var tile = (y == n_blocks / 2 && x == n_blocks / 2) ? 3 : (y == 0 || x == 0 || y == n_blocks || x == n_blocks) ? 8 : 2;
 			mapTiles[y].push(tile)
 		}
 	}
@@ -94,7 +97,7 @@ function generateMap(n_blocks) {
 }
 
 function buildMap(game) {
-	var tileTypes = ['water','sand','grass','stone','wood','watersand','grasssand','sandstone','bush1','bush2','mushroom','wall','window'];
+	var tileTypes = ['water', 'sand', 'grass', 'stone', 'wood', 'watersand', 'grasssand', 'sandstone', 'bush1', 'bush2', 'mushroom', 'wall', 'window'];
 	var tiles = [
 		[8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
 		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
@@ -140,7 +143,7 @@ function buildMap(game) {
 		mapheight = map_height / tileheight,
 		n_blocks = Math.floor(blocks_size / tilewidth),
 		centerX = (window.innerWidth / 2),
-		centerY = ((window.innerHeight / 2)-((n_blocks*tileheight)/2))+tileheight,
+		centerY = ((window.innerHeight / 2) - ((n_blocks * tileheight) / 2)) + tileheight,
 		i = 0;
 
 	generateMap(n_blocks)
@@ -148,7 +151,7 @@ function buildMap(game) {
 	for (var y = 0; y < tiles.length; y++) {
 		for (var x = 0; x < tiles[y].length; x++) {
 			var tile_type = tileTypes[tiles[y][x]];
-			
+
 			var group = game.ground;
 			if (blocks_size > window.innerWidth) {
 				var tx = (x - y) * tileWidthHalf - ((blocks_size - window.innerWidth) / tilewidth);
@@ -160,14 +163,14 @@ function buildMap(game) {
 			} else {
 				var ty = (x + y) * tileHeightHalf;
 			}
-			if (tile_type == 'bush1' || tile_type == 'water' || tile_type=='bush2' || (y == 0 || x == 0 || y == n_blocks || x == n_blocks)) {
+			if (tile_type == 'bush1' || tile_type == 'water' || tile_type == 'bush2' || (y == 0 || x == 0 || y == n_blocks || x == n_blocks)) {
 				group = game.blocks
 			}
 			if (tile_type == 'bush1') {
 				ty = ty - 7;
 			}
-	
-			
+
+
 			var tile = group.create(centerX + tx, centerY + ty, 'tileset', tile_type);
 			tile.depth = -100;
 			if (tile_type == 'bush1') {
@@ -180,7 +183,7 @@ function buildMap(game) {
 			i++;
 		}
 	}
-	
+
 }
 
 function move_player(d, sprite, text) {
@@ -227,9 +230,6 @@ function preload() {
 
 	}
 	g = this
-	//var start_coords = encodePoint(window.innerWidth / 2, window.innerHeight / 2);
-	//start.x = start_coords[0]
-	//start.y = start_coords[1]
 	var decoded = decodePoint(start.x, start.y)
 }
 
@@ -434,7 +434,11 @@ class PhaserGame extends Phaser.Game {
 				player: g.physics.add.sprite(data.direction.prev_x, data.direction.prev_y, 'player_01'),
 				text: g.add.text(data.direction.prev_x, data.direction.prev_y, data["twitch_name"], style)
 			}
-			move_player(data, players[data["uid"]]["player"], players[data["uid"]]["text"])
+			try {
+				move_player(data, players[data["uid"]]["player"], players[data["uid"]]["text"])
+			} catch (err) {
+				console.log(err)
+			}
 		}
 
 
@@ -457,56 +461,76 @@ class PhaserGame extends Phaser.Game {
 		}
 
 	}
-	// Move the rest of socket events to mmo functions
 }
 
-const game = new PhaserGame(game);
+var game
 
-const MmoGame = function () {
-	var t = this;
+const MmoGame = function (game) {
+	var t = this,
+		c = {}
+	this.init = function (s) {
+
+		socket = s
+		game = new PhaserGame(game);
+		socket.on("connected", function (data) {
+			p = {
+				"uid": data["uid"]
+			}
+			for (let i = 0; i < data["players"].length; i++) {
+				players[data["uid"]] = data["players"][i]
+				game.newUser(players[data["uid"]])
+			}
+
+		});
+
+		socket.on("newplayer", function (data) {
+			players[data["uid"]] = data
+			game.newUser(data)
+
+		});
+		socket.on('updateself', function (data) {
+			uname = data["twitch_name"]
+			g.text.setText(uname);
+		});
+
+		socket.on('updateplayer updatename', game.updateUser);
+
+		socket.on('updateskin', game.updateSkin);
+
+		socket.on('move', game.moveUser);
+		socket.on('remove', function (data) {
+			console.log(data)
+			if (p["uid"] != data["uid"] && players.hasOwnProperty(data["uid"])) {
+				players[data["uid"]]["player"].setActive(false);
+				players[data["uid"]]["player"].setVisible(false);
+				players[data["uid"]]["text"].setActive(false);
+				players[data["uid"]]["text"].setVisible(false);
+			}
+		});
+
+		socket.on('disconnect', function (data) {
+			// Add connection sprite, change to red/disconnected 
+		});
+
+
+
+	}
 	this.setPlayer = function (auth) {
 		console.log("Sending Auth...")
 		socket.emit('updateplayer', auth);
 		captured_auth = auth
 	}
-	socket.on("connected", function (data) {
-		p = {
-			"uid": data["uid"]
-		}
-		for (let i = 0; i < data["players"].length; i++) {
-			players[data["uid"]] = data["players"][i]
-			game.newUser(players[data["uid"]])
-		}
-	});
+	this.getSkins = function() {
+		console.log(skin_files)
+		return skin_files;
+	}
+	this.setSkin = function(skin) {
+		console.log(skin)
+		g.skin = skin;
+		g.player.setTexture(g.skin, 0);
+		socket.emit('updateskin', g.skin);
+	}
 
-	socket.on("newplayer", function (data) {
-		players[data["uid"]] = data
-		game.newUser(data)
-
-	});
-	socket.on('updateself', function (data) {
-		uname = data["twitch_name"]
-		g.text.setText(uname);
-	});
-
-	socket.on('updateplayer updatename', game.updateUser);
-
-	socket.on('updateskin', game.updateSkin);
-
-	socket.on('move', game.moveUser);
-	socket.on('remove', function (data) {
-		if (p["uid"] != data["uid"] && players.hasOwnProperty(data["uid"])) {
-			players[data["uid"]]["player"].setActive(false);
-			players[data["uid"]]["player"].setVisible(false);
-			players[data["uid"]]["text"].setActive(false);
-			players[data["uid"]]["text"].setVisible(false);
-		}
-	});
-
-
-	socket.on('disconnect', function (data) {
-		// Add connection sprite, change to red/disconnected 
-	});
 }
 
 
