@@ -17,7 +17,7 @@ import {
 } from "iconv-lite";
 var config = require('../config');
 
-const socket = io('http://' + config.server_host + ':' + config.server_port + '/');
+const socket = io('https://' + config.server_host + ':' + config.server_port + '/');
 var style = {
 	font: "8px Arial",
 	fill: "#ffffff",
