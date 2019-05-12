@@ -1,0 +1,68 @@
+@font-face {
+	font-family: 'Dos';
+	src: url('https://hennessy.co.de/fonts/moreperfectdosvga-webfont.woff2') format('woff2'),
+		url('https://hennessy.co.de/fonts/moreperfectdosvga-webfont.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+}
+
+html,
+body {
+
+	border: 0px;
+	margin: 0px;
+	font-family: 'Dos';
+	font-smooth: never;
+	-webkit-font-smoothing: none;
+	font-weight: normal;
+
+}
+
+.interface {}
+
+.status {
+	position: absolute;
+	left: 15px;
+	top: 15px;
+}
+
+.status .fa-link {
+	color: green;
+}
+
+.status .fa-unlink {
+	color: red;
+}
+
+.menu {
+	display:table;
+	color: #fff;
+	position: absolute;
+	left: 15px;
+	right: 15px;
+	bottom: 15px;
+	padding: 15px;
+	background: #000;
+	border: 2px solid #fff;
+
+
+}
+
+.menu--group {
+	position: relative;
+	display: table-cell;
+	vertical-align: middle;
+}
+
+.menu--label {
+	position: relative;
+}
+
+@media(min-width: 680px) {
+	.menu {
+		left: 0;
+		right: 0;
+		margin: auto;
+		width: 650px;
+	}
+}
