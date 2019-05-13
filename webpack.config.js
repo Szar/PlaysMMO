@@ -3,48 +3,21 @@ const path = require("path")
 const webpack = require("webpack")
 const CleanWebpackPlugin = require('clean-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
-var config = require('./config');
 
 // defines where the bundle file will live
 const bundlePath = path.resolve(__dirname, "dist/")
 
 module.exports = (_env,argv)=> {
-  let entryPoints = {
-    VideoComponent:{
-      path:"./src/VideoComponent.js",
-      outputHtml:"video_component.html",
+	let entryPoints = {
+    Index:{
+      path:"./src/index.js",
+      outputHtml:"index.html",
       build:true
     },
-    VideoOverlay:{
-      path:"./src/VideoOverlay.js",
-      outputHtml:"video_overlay.html",
-      build:true
-    },
-    Panel:{
-      path:"./src/Panel.js",
-      outputHtml:"panel.html",
-      build:true
-    },
-    Config:{
-      path:"./src/Config.js",
-      outputHtml:"config.html",
-      build:true
-    },
-    LiveConfig:{
-      path:"./src/LiveConfig.js",
-      outputHtml:"live_config.html",
-      build:true
-    },
-    Mobile:{
-      path:"./src/Mobile.js",
-      outputHtml:"mobile.html",
-      build:true
-    }
   }
+ 
 
   let entry = {}
-
-  // edit webpack plugins here!
   let plugins = [
     new CleanWebpackPlugin(['dist']),
     new webpack.HotModuleReplacementPlugin()
@@ -63,12 +36,11 @@ module.exports = (_env,argv)=> {
       }
     }    
   }
-
+  
   let config={
-    //entry points for webpack- remove if not used/needed
-    entry,
+    entry: './src/index.js',
     optimization: {
-      minimize: false, // neccessary to pass Twitch's review process
+      minimize: false,
     },
     module: {
       rules: [
@@ -82,12 +54,12 @@ module.exports = (_env,argv)=> {
           use: [ 'style-loader', 'css-loader' ]
         },
         {
-          test: /\.(jpe?g|png|gif|svg)$/i, 
+		  test: /\.(gif|png|jpe?g|svg|xml)$/i,
           loader: "file-loader",
           options:{
-            name:"img/[name].[ext]"
+            name:"assets/[name].[ext]"
           }
-        }
+		},
       ]
     },
     resolve: { extensions: ['*', '.js', '.jsx'] },
@@ -95,7 +67,11 @@ module.exports = (_env,argv)=> {
       filename: "[name].bundle.js",
       path:bundlePath
     },
-    plugins
+    plugins: [new HtmlWebpackPlugin({
+		inject:true,
+		template:'./public/index.html',
+		filename:"index.html",
+	  })]
   }
 
   if(argv.mode==='development'){

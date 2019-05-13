@@ -1,422 +1,279 @@
-import React from "react"
-import ReactDOM from "react-dom"
-import App from "./components/App/App"
-import Phaser, {
-	Game,
-	Scene
-} from 'phaser';
+import Phaser from 'phaser';
+import './style.css';
+import { assets } from './Assets';
+import { map } from './Map';
+import { encodePoint, decodePoint, getRandomInt } from './Utils';
+import cursor from "./assets/sprites/cursor.png";
 import io from 'socket.io-client';
-import mapImg from "../assets/sprites/maps/map_01.png";
-import player01 from "../assets/sprites/players/01.png";
-import player02 from "../assets/sprites/players/02.png";
-import player03 from "../assets/sprites/players/03.png";
-import mapJSON from "../assets/tilesets/tileset.json";
-import mapPng from "../assets/tilesets/tileset.png";
-import {
-	encode
-} from "iconv-lite";
-var config = require('../config');
+const config = require('./Config');
+export const socket = io('https://' + config.server.host + ":" + config.server.port + '/');
 
-var socket
-var style = {
-	font: "8px Arial",
-	fill: "#ffffff",
-	wordWrap: true,
-	wordWrapWidth: 32,
-	align: "center",
-	backgroundColor: "#000000"
-};
-var players = {},
-	default_speed = 100,
-	speed = default_speed,
-	frameRate = 7,
-	p = {},
-	g,
-	start_range = 30,
-	start = {
-		x: getRandomInt(-start_range, start_range),
-		y: getRandomInt(-start_range, start_range)
-	},
-	text_margin = 25,
-	captured_auth = null,
-	uname = "Player",
-	skins = {},
-	blocks,
-	d = 0,
-	skin_id = 0;
-
-var skin_files = [{
-		"name": "player_01",
-		"file": player01,
-		"title": "Flamedramon",
-	},
-	{
-		"name": "player_02",
-		"file": player02,
-		"title": "Gabumon",
-	},
-	{
-		"name": "player_03",
-		"file": player03,
-		"title": "Kuwagamon",
-	},
-]
-
-function getRandomInt(min, max) {
-	min = Math.ceil(min);
-	max = Math.floor(max);
-	return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+var game;
 
 
-
-function normPoint(x, y) {
-	return [x / (window.innerWidth / 2), y / (window.innerHeight / 2)]
-}
-
-function decodePoint(x, y) {
-	return [x + (window.innerWidth / 2), y + (window.innerHeight / 2)]
-}
-
-function encodePoint(x, y) {
-	return [x - (window.innerWidth / 2), y - (window.innerHeight / 2)]
-}
-
-function generateMap(n_blocks) {
-	var mapTiles = [];
-
-	for (var y = 0; y <= n_blocks; y++) {
-		mapTiles.push([])
-		for (var x = 0; x <= n_blocks; x++) {
-			var tile = (y == n_blocks / 2 && x == n_blocks / 2) ? 3 : (y == 0 || x == 0 || y == n_blocks || x == n_blocks) ? 8 : 2;
-			mapTiles[y].push(tile)
+var loadAnimations = function(game) {
+	for (let i = 0; i < assets["skins"]["files"].length; i++) {
+		for (let j = 0; j < assets["skins"]["animations"].length; j++) {
+			game.anims.create({
+				key: assets["skins"]["files"][i]["name"] + assets["skins"]["animations"][j]["name"],
+				frames: !assets["skins"]["animations"][j]["animated"] ? [{
+					key: assets["skins"]["files"][i]["name"],
+					frame: assets["skins"]["animations"][j]["frames"][0]
+				}] : game.anims.generateFrameNumbers(assets["skins"]["files"][i]["name"], {
+					start: assets["skins"]["animations"][j]["frames"][0],
+					end: assets["skins"]["animations"][j]["frames"][1]
+				}),
+				frameRate: 7,
+			});
 		}
 	}
-
-	return mapTiles;
 }
 
-function buildMap(game) {
-	var tileTypes = ['water', 'sand', 'grass', 'stone', 'wood', 'watersand', 'grasssand', 'sandstone', 'bush1', 'bush2', 'mushroom', 'wall', 'window'];
-	var tiles = [
-		[8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8],
-		[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-		[6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
-		[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-		[5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-		[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-	];
+class Player extends Phaser.GameObjects.Sprite {
+	constructor(conf) {
+		
+		super(conf.scene, conf.x, conf.y, conf.skin);
+		for (var k in conf) {
+			this[k] = conf[k]
+		}
+		
+		this.scene = conf.scene;
+		this.scene.physics.world.enable(this);
+		this.scene.add.existing(this);
+		this.smoothed = false;
+		this.animate("stand")
 
-	var blocks_size = 1920,
-		tilewidth = 64,
-		tileheight = 32,
-		map_width = window.innerWidth,
-		map_height = window.innerHeight,
-		tileWidthHalf = tilewidth / 2,
-		tileHeightHalf = tileheight / 2,
-		mapwidth = map_width / tilewidth,
-		mapheight = map_height / tileheight,
-		n_blocks = Math.floor(blocks_size / tilewidth),
-		centerX = (window.innerWidth / 2),
-		centerY = ((window.innerHeight / 2) - ((n_blocks * tileheight) / 2)) + tileheight,
+		this.text = this.scene.add.bitmapText(conf.x, conf.y, config.font.default, this.name, config.font.size)
+		
+		this.chat = this.scene.add.text(conf.x, conf.y, "Lorem ipsum dolor sit amet, consectetur adipiscing elit", { 
+			font: "10px Arial", 
+			fill: '#000000', 
+			backgroundColor: 'rgba(255,255,255,0.9)',
+			wordWrap: { width: 130, useAdvancedWrap: true } 
+		});
+		this.chat.setPadding(8, 5);
+		this.chat.setLineSpacing(-1);
+		this.chat.setVisible(false);
+
+		this.depth = conf.depth
+		this.direction = "sw"
+		this.moveText(conf.x, conf.y, conf.depth)
+
+	}
+	
+	animate(a) {
+		this.anims.play(this.skin + a, true);
+	}
+	moveText(x, y, depth){
+		this.text.setPosition(x-(this.text.width / 2), y-(config.sprite.height/2)-(this.text.height));
+		this.text.depth = depth
+
+		this.chat.setPosition(x-(this.chat.width / 2), y-(config.sprite.height/2)-(this.text.height+this.chat.height)-7);
+		this.chat.depth = depth
+	}
+	move(x, y, d, m) {
+		var animation = m ? d == "se" || d == "sw" ? 'walk' : 'back_walk' : d == "se" || d == "sw" ? 'stand' : 'back_stand',
+			c = decodePoint(x, y);
+		
+		this.flipX = d == "se" || d == "ne";
+		this.animate(animation, true);
+		this.setPosition(c.x, c.y);
+		this.x = c.x
+		this.y = c.y
+		this.moveText(c.x, c.y, y)
+		this.depth = y
+		this.direction = d
+		
+	}
+
+	update(data) {
+		var d = this.direction,
+			m = false,
+			animation = m ? d == "se" || d == "sw" ? 'walk' : 'back_walk' : d == "se" || d == "sw" ? 'stand' : 'back_stand'
+	
+		this.flipX = d == "se" || d == "ne";
+		this.skin = data.skin
+		this.name = data.name
+		this.text.setText(this.name);
+		this.moveText(this.x, this.y);
+		this.animate(animation, true);
+	}
+	message(data) {
+		this.chat.setText(data.message);
+		this.chat.setPosition(this.x-(this.chat.width / 2), this.y-(config.sprite.height/2)-(this.text.height+this.chat.height)-7);
+		this.chat.setVisible(true);
+		var t = this;
+		setTimeout(function(){
+			t.chat.setVisible(false);
+		}, config.chat.timeout)
+	}
+
+	remove() {
+		this.text.setActive(false);
+		this.text.setVisible(false);
+		this.chat.setActive(false);
+		this.chat.setVisible(false);
+		this.setActive(false);
+		this.setVisible(false);
+	}
+}
+
+var createMap = function(game) {
+	game.blocks = game.physics.add.staticGroup();
+	game.ground = game.physics.add.staticGroup();
+
+	const tile_width = 64,
+		tile_height = 32,
+		width = config.game.width,
+		height = config.game.height,
+		ratio = map.tiles[0].length / map.tiles.length,
+		n = Math.floor(width / tile_width),
+		centerX = width / 2,
+		centerY = 16 - (height / 2),
 		i = 0;
 
-	generateMap(n_blocks)
-
-	for (var y = 0; y < tiles.length; y++) {
-		for (var x = 0; x < tiles[y].length; x++) {
-			var tile_type = tileTypes[tiles[y][x]];
-
-			var group = game.ground;
-			if (blocks_size > window.innerWidth) {
-				var tx = (x - y) * tileWidthHalf - ((blocks_size - window.innerWidth) / tilewidth);
-			} else {
-				var tx = (x - y) * tileWidthHalf;
-			}
-			if (blocks_size > window.innerHeight) {
-				var ty = ((x + y) * tileHeightHalf - ((blocks_size - window.innerHeight) / tileheight));
-			} else {
-				var ty = (x + y) * tileHeightHalf;
-			}
-			if (tile_type == 'bush1' || tile_type == 'water' || tile_type == 'bush2' || (y == 0 || x == 0 || y == n_blocks || x == n_blocks)) {
-				group = game.blocks
-			}
-			if (tile_type == 'bush1') {
-				ty = ty - 7;
-			}
-
-
-			var tile = group.create(centerX + tx, centerY + ty, 'tileset', tile_type);
-			tile.depth = -100;
-			if (tile_type == 'bush1') {
-				tile.setSize(64, 32).setOffset(0, 13)
-				if (y == n_blocks || x == n_blocks) {
-					tile.depth = tile.y - tileheight;
+	for (var y = 0; y < map.tiles.length; y++) {
+		for (var x = 0; x < map.tiles[y].length; x++) {
+			if (map.tiles[y][x] !== null && map.tiles[y][x] >= 0) {
+				var type = map.types[map.tiles[y][x]],
+					group = type == 'bush1' || type == 'water' || type == 'bush2' ? game.blocks : game.ground,
+					tx = width > window.innerWidth ? (x - y) * (tile_width / 2) - ((width - window.innerWidth) / tile_width) : (x - y) * (tile_width / 2),
+					ty = height > window.innerHeight ? ((x + y) * (tile_height / 2) - ((width / ratio - window.innerHeight) / tile_height)) : (x + y) * (tile_height / 2);
+				
+				var tile = group.create(centerX + tx, type == 'bush1' ? centerY + ty - 7 : centerY + ty, 'tileset', type),
+					c = encodePoint(tile.x, tile.y - tile_height);
+				tile.depth = c.y - 9999;
+				if (type == 'bush1') {
+					tile.setSize(64, 32).setOffset(0, 13)
+					tile.depth = y == n / ratio || x == n ? c.y : tile.depth;
 				}
 
 			}
-			i++;
 		}
 	}
 
-}
-
-function move_player(d, sprite, text) {
-	var move_coords = decodePoint(d.direction.cx, d.direction.cy)
-	d.direction.x = move_coords[0]
-	d.direction.y = move_coords[1]
-	if (d.direction.d == "se" || d.direction.d == "ne") {
-		sprite.flipX = true;
-	} else {
-		sprite.flipX = false;
-	}
-
-	if (d.direction.y !== 0) {
-		if (d.direction.d == "se" || d.direction.d == "sw") {
-			sprite.anims.play(d.skin + 'walk', true);
-		} else {
-			sprite.anims.play(d.skin + 'back_walk', true);
-		}
-	} else {
-		if (d.direction.d == "se" || d.direction.d == "sw") {
-			sprite.anims.play(d.skin + 'stand', true);
-		} else {
-			sprite.anims.play(d.skin + 'back_stand', true);
-		}
-	}
-
-	sprite.setPosition(d.direction.x, d.direction.y);
-	text.setPosition(d.direction.x - (text.width / 2), d.direction.y - text_margin);
-	sprite.depth = sprite.y;
-	text.depth = sprite.y;
-
+	game.physics.add.collider(game.cursor, game.blocks);
 }
 
 
-function preload() {
-	this.load.atlas('tileset', mapPng, mapJSON);
-	for (let i = 0; i < skin_files.length; i++) {
-		this.load.spritesheet(skin_files[i]["name"],
-			skin_files[i]["file"], {
-				frameWidth: 34,
-				frameHeight: 44
+var preload = function() {
+	game = this
+	this.load.atlas('tileset', assets["map"]["file"], assets["map"]["json"]);
+	for (let i = 0; i < assets["skins"]["files"].length; i++) {
+		this.load.spritesheet(assets["skins"]["files"][i]["name"],
+			assets["skins"]["files"][i]["file"], {
+				frameWidth: config.sprite.width,
+				frameHeight: config.sprite.height
 			});
-		skins[skin_files[i]["name"]] = {}
-
 	}
-	g = this
-	var decoded = decodePoint(start.x, start.y)
+	for (let i = 0; i < assets["fonts"].length; i++) {
+		var f = assets["fonts"][i]
+		this.load.bitmapFont(f["name"], f["file"], f["xml"]);
+	}
+	this.load.image('cursor', cursor);
+	this.players = {}
+
 }
 
-function create() {
-	this.skin = skin_files[skin_id]["name"]
-	socket.emit('newplayer', {
-		start: start,
-		skin: this.skin
-	});
 
-	this.direction = {
-		prev_x: 0,
-		prev_y: 0,
-		x: 0,
-		y: 0,
+var create = function() {
+	loadAnimations(this)
+	var start = decodePoint(getRandomInt(-config.game.spawn_area, config.game.spawn_area), 0);
+	this.data = {
+		moving: false,
+		was_moving: false,
+		x: start.x,
+		y: start.y,
+		skin: assets["skins"]["files"][0]["name"],
+		name: "???"
 	}
-	this.physics.world.setBounds(0, 0, window.innerWidth, window.innerHeight);
-	var player_coords = decodePoint(start.x, start.y)
-	this.player = this.physics.add.sprite(player_coords[0], player_coords[1], this.skin)
-		.setSize(20, 15)
-		.setOffset((32 - 20) / 2, 44 - 15)
-	this.player.smoothed = false;
-	this.text = this.add.text(start.x, start.y, uname, style)
+	this.cursor = this.physics.add.image(this.data.x, this.data.y, 'cursor')
+	this.cursor.setBounce(0.5);
+	this.physics.world.enable(this.cursor);
+	this.cursor.setCollideWorldBounds(true)
+	this.cursor.setSize(config.sprite.hitbox.width, config.sprite.hitbox.height)
+	this.cursor.setOffset((config.sprite.width - config.sprite.hitbox.width) / 2, config.sprite.height - config.sprite.hitbox.height)
+	this.scene = this
+	createMap(this);
 
-	for (let i = 0; i < skin_files.length; i++) {
-		this.anims.create({
-			key: skin_files[i]["name"] + 'stand',
-			frames: [{
-				key: skin_files[i]["name"],
-				frame: 3
-			}],
-			frameRate: frameRate,
-		});
-		this.anims.create({
-			key: skin_files[i]["name"] + 'back_stand',
-			frames: [{
-				key: skin_files[i]["name"],
-				frame: 0
-			}],
-			frameRate: frameRate,
-		});
-		this.anims.create({
-			key: skin_files[i]["name"] + 'walk',
-			frames: this.anims.generateFrameNumbers(skin_files[i]["name"], {
-				start: 3,
-				end: 5
-			}),
-			frameRate: frameRate,
-			repeat: -1
-		});
-		this.anims.create({
-			key: skin_files[i]["name"] + 'back_walk',
-			frames: this.anims.generateFrameNumbers(skin_files[i]["name"], {
-				start: 0,
-				end: 2
-			}),
-			frameRate: frameRate,
-			repeat: -1
-		});
-	}
-
-	this.player.anims.play(this.skin + 'stand', true);
-	if (captured_auth != null) {
-		socket.emit('updateplayer', captured_auth);
-	}
-
-	this.blocks = this.physics.add.staticGroup();
-	this.ground = this.physics.add.staticGroup();
-
-	buildMap(this);
-
-	this.physics.add.collider(this.player, this.blocks);
-
-
-	this.cameras.main.startFollow(this.player);
-	this.spacebar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-	this.shift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+	var data = this.data,
+		c = encodePoint(this.data.x, this.data.y);
+	data.x = c.x
+	data.y = c.y
+	socket.emit('connected', data);
+	
 }
 
-function update() {
-	var cursors = this.input.keyboard.createCursorKeys();
-	if (this.shift.isDown) {
-		speed = 160
-	} else {
-		speed = default_speed
-	}
-	if (Phaser.Input.Keyboard.JustDown(this.spacebar)) {
-		skin_id++;
-		if (skin_id >= skin_files.length) {
-			skin_id = 0;
-		}
-		this.skin = skin_files[skin_id]["name"];
-		this.player.setTexture(this.skin, 0);
-		socket.emit('updateskin', this.skin);
-
-	}
-	if (this.direction.d == "se" || this.direction.d == "ne") {
-		this.player.flipX = true;
-	} else {
-		this.player.flipX = false;
-	}
-
+var update = function() {
+	var cursors = this.input.keyboard.createCursorKeys(),
+		update = false,
+		moving = true,
+		speed = cursors.shift.isDown ? config.game.speed*config.game.speed_multiplier : config.game.speed;
 	if (cursors.left.isDown) {
-		this.direction.x = -1
-		this.direction.y = -1
-		this.direction.d = "nw"
+		this.data.x = -1
+		this.data.y = -1
+		this.data.d = "nw"
 
 	} else if (cursors.right.isDown) {
-		this.direction.x = 1
-		this.direction.y = 1
-
-		this.direction.d = "se"
+		this.data.x = 1
+		this.data.y = 1
+		this.data.d = "se"
 
 	} else if (cursors.up.isDown) {
-		this.direction.x = 1
-		this.direction.y = -1
-		this.direction.d = "ne"
+		this.data.x = 1
+		this.data.y = -1
+		this.data.d = "ne"
 
 	} else if (cursors.down.isDown) {
-
-		this.direction.x = -1
-		this.direction.y = 1
-		this.direction.d = "sw"
+		this.data.x = -1
+		this.data.y = 1
+		this.data.d = "sw"
 	} else {
-		this.direction.x = 0
-		this.direction.y = 0
-		this.player.body.velocity.y = 0;
-		this.player.body.velocity.x = 0;
-	}
-	if (this.direction.d == "se" || this.direction.d == "ne") {
-		this.player.flipX = true;
-	} else {
-		this.player.flipX = false;
+		this.data.x = 0
+		this.data.y = 0
+		moving = false;
+		
 	}
 
-
-	if (this.direction.y !== 0) {
-		if (this.direction.d == "se" || this.direction.d == "sw") {
-			this.player.anims.play(this.skin + 'walk', true);
-		} else {
-			this.player.anims.play(this.skin + 'back_walk', true);
+	if (moving) {
+		this.data.moving = true
+		this.data.was_moving = this.data.moving
+		this.cursor.body.velocity.x = this.data.x * speed;
+		this.cursor.body.velocity.y = this.data.y * speed * 0.5;
+		update = true
+	}
+	else {
+		if(this.data.was_moving) {
+			this.data.moving = false
+			this.data.was_moving = this.data.moving
+			update = true
 		}
-		this.x += this.direction.x * speed;
-		this.y += this.direction.y * speed;
-		this.player.body.velocity.x = this.direction.x * speed
-		this.player.body.velocity.y = this.direction.y * speed * 0.5;
-	} else {
-		if (this.direction.d == "se" || this.direction.d == "sw") {
-			this.player.anims.play(this.skin + 'stand', true);
-		} else {
-			this.player.anims.play(this.skin + 'back_stand', true);
-		}
+		this.cursor.body.velocity.y = 0;
+		this.cursor.body.velocity.x = 0;
 	}
-
-	if (this.direction.prev_x != this.player.x || this.direction.prev_y != this.player.y) {
-		this.direction.prev_x = this.player.x
-		this.direction.prev_y = this.player.y
-		this.text.setPosition(this.direction.prev_x - (this.text.width / 2), this.direction.prev_y - text_margin);
-		var u = p
-
-		var move_coords = encodePoint(this.player.x, this.player.y)
-		u.direction = this.direction
-		u.direction.cx = move_coords[0]
-		u.direction.cy = move_coords[1]
-		socket.emit('move', u);
-		this.player.depth = this.player.y;
-		this.text.depth = this.player.y;
+	if(update) {
+		var data = this.data,
+			c = encodePoint(this.cursor.x, this.cursor.y);
+		data.x = c.x
+		data.y = c.y
+		socket.emit('move', data);
 	}
+	
 
 }
 
-
-
-class PhaserGame extends Phaser.Game {
-	constructor() {
-		const config = {
+const MmoGame = function() {
+	var t = this
+	new Phaser.Game({
 			type: Phaser.AUTO,
-			parent: 'game-container',
-			width: window.innerWidth,
-			height: window.innerHeight,
-			zoom: 1,
+			width: config.game.width,
+			height: config.game.height,
+			parent: 'playsmmo',
 			pixelArt: true,
-			antialias: false,
 			physics: {
 				default: 'arcade',
 				arcade: {
-					//debug: true,
+					//debug: true
 				}
 			},
 			scene: {
@@ -424,114 +281,54 @@ class PhaserGame extends Phaser.Game {
 				create: create,
 				update: update
 			}
-		};
-		super(config);
-	}
-
-	newUser(data) {
-		if (p["uid"] != data["uid"]) {
-			players[data["uid"]] = {
-				player: g.physics.add.sprite(data.direction.prev_x, data.direction.prev_y, 'player_01'),
-				text: g.add.text(data.direction.prev_x, data.direction.prev_y, data["twitch_name"], style)
-			}
-			try {
-				move_player(data, players[data["uid"]]["player"], players[data["uid"]]["text"])
-			} catch (err) {
-				console.log(err)
-			}
+	});
+	var join = function(player){
+		if(!game.players.hasOwnProperty(player["id"])) {
+			var c = decodePoint(player.x, player.y);
+			game.players[player["id"]] = new Player({
+				scene: game,
+				skin: player.skin,
+				x: c.x,
+				y: c.y,
+				name: player.name,
+				depth: player.y
+			})
 		}
-
-
+		
 	}
-	moveUser(data) {
-		if (players.hasOwnProperty(data["uid"]) && p.hasOwnProperty("uid") && p["uid"] != data["uid"]) {
-			move_player(data, players[data["uid"]]["player"], players[data["uid"]]["text"])
+	socket.on("joined", function(data) {
+		join(data)
+	})
+	socket.on("message", function(player) {
+		if(game.players.hasOwnProperty(player["id"])) {
+			game.players[player["id"]].message(player)
 		}
-	}
-	updateUser(data) {
-		if (players.hasOwnProperty(data["uid"]) && p.hasOwnProperty("uid") && p["uid"] != data["uid"]) {
-			players[data["uid"]]["text"].setText(data["twitch_name"]);
+	})
+	socket.on("update", function(player) {
+		console.log("UPDATE PLAYER")
+		if(game.players.hasOwnProperty(player["id"])) {
+			game.players[player["id"]].update(player)
 		}
-	}
-
-	updateSkin(data) {
-		if (players.hasOwnProperty(data["uid"]) && p.hasOwnProperty("uid") && p["uid"] != data["uid"]) {
-			players[data["uid"]]["skin"] = data["skin"]
-			players[data["uid"]]["player"].setTexture(players[data["uid"]]["skin"], 0);
+	})
+	socket.on("connected", function(data) {
+		game.data.id = data["id"]
+		for (let i = 0; i < data["players"].length; i++) {
+			join(data["players"][i])
 		}
+	});
+	socket.on('move', function(data){
+		game.players[data["id"]].move(data.x, data.y, data.d, data.moving)
+	});
 
-	}
-}
-
-var game
-
-const MmoGame = function (game) {
-	var t = this,
-		c = {}
-	this.init = function (s) {
-
-		socket = s
-		game = new PhaserGame(game);
-		socket.on("connected", function (data) {
-			p = {
-				"uid": data["uid"]
-			}
-			for (let i = 0; i < data["players"].length; i++) {
-				players[data["uid"]] = data["players"][i]
-				game.newUser(players[data["uid"]])
-			}
-
-		});
-
-		socket.on("newplayer", function (data) {
-			players[data["uid"]] = data
-			game.newUser(data)
-
-		});
-		socket.on('updateself', function (data) {
-			uname = data["twitch_name"]
-			g.text.setText(uname);
-		});
-
-		socket.on('updateplayer updatename', game.updateUser);
-
-		socket.on('updateskin', game.updateSkin);
-
-		socket.on('move', game.moveUser);
-		socket.on('remove', function (data) {
-			console.log(data)
-			if (p["uid"] != data["uid"] && players.hasOwnProperty(data["uid"])) {
-				players[data["uid"]]["player"].setActive(false);
-				players[data["uid"]]["player"].setVisible(false);
-				players[data["uid"]]["text"].setActive(false);
-				players[data["uid"]]["text"].setVisible(false);
-			}
-		});
-
-		socket.on('disconnect', function (data) {
-			// Add connection sprite, change to red/disconnected 
-		});
-
-
-
-	}
-	this.setPlayer = function (auth) {
-		console.log("Sending Auth...")
-		socket.emit('updateplayer', auth);
-		captured_auth = auth
-	}
-	this.getSkins = function() {
-		console.log(skin_files)
-		return skin_files;
-	}
-	this.setSkin = function(skin) {
-		console.log(skin)
-		g.skin = skin;
-		g.player.setTexture(g.skin, 0);
-		socket.emit('updateskin', g.skin);
-	}
+	socket.on('remove', function(player) {
+		if(game.players.hasOwnProperty(player["id"])) {
+			game.players[player["id"]].remove();
+			delete game.players[player["id"]];
+		}
+	});
 
 }
 
 
-export const Mmo = new MmoGame(game);
+
+export const Mmo = new MmoGame();
