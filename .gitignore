@@ -70,3 +70,6 @@ nohup.out
 build/
 dist/
 src/Config.js
+src/config.js
+src/Config*
+*Config*
