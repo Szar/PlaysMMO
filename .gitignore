@@ -69,3 +69,4 @@ config.js
 nohup.out
 build/
 dist/
+src/Config.js
