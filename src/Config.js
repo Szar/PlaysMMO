@@ -1,7 +1,7 @@
 var config = {
 	game: {
-		width: 800,
-		height: 450,
+		width: document.innerWidth,
+		height: document.innerHeight,
 		speed: 100,
 		speed_multiplier: 5,
 		spawn_area: 100

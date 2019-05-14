@@ -10,25 +10,6 @@ export const socket = io('https://' + config.server.host + ":" + config.server.p
 
 var game;
 
-
-var loadAnimations = function(game) {
-	for (let i = 0; i < assets["skins"]["files"].length; i++) {
-		for (let j = 0; j < assets["skins"]["animations"].length; j++) {
-			game.anims.create({
-				key: assets["skins"]["files"][i]["name"] + assets["skins"]["animations"][j]["name"],
-				frames: !assets["skins"]["animations"][j]["animated"] ? [{
-					key: assets["skins"]["files"][i]["name"],
-					frame: assets["skins"]["animations"][j]["frames"][0]
-				}] : game.anims.generateFrameNumbers(assets["skins"]["files"][i]["name"], {
-					start: assets["skins"]["animations"][j]["frames"][0],
-					end: assets["skins"]["animations"][j]["frames"][1]
-				}),
-				frameRate: 7,
-			});
-		}
-	}
-}
-
 class Player extends Phaser.GameObjects.Sprite {
 	constructor(conf) {
 		
@@ -59,10 +40,19 @@ class Player extends Phaser.GameObjects.Sprite {
 		this.direction = "sw"
 		this.moveText(conf.x, conf.y, conf.depth)
 
+		/*this.on('animationcomplete', function(animation, frame){
+			console.log(animation.key)
+			if(animation.key.indexOf('jump')!==-1) {
+				console.log("contains")
+				this.animate(this.facingForward(data.d)?'stand':'back_stand', true);
+        	}
+		}, this);*/
+
 	}
 	
-	animate(a) {
-		this.anims.play(this.skin + a, true);
+	animate(a,l) {
+		l = typeof l==="undefined"?l=true:l;
+		this.anims.play(this.skin + a, l);
 	}
 	moveText(x, y, depth){
 		this.text.setPosition(x-(this.text.width / 2), y-(config.sprite.height/2)-(this.text.height));
@@ -71,8 +61,11 @@ class Player extends Phaser.GameObjects.Sprite {
 		this.chat.setPosition(x-(this.chat.width / 2), y-(config.sprite.height/2)-(this.text.height+this.chat.height)-7);
 		this.chat.depth = depth
 	}
+	facingForward(d) {
+		return d == "se" || d == "sw";
+	}
 	move(x, y, d, m) {
-		var animation = m ? d == "se" || d == "sw" ? 'walk' : 'back_walk' : d == "se" || d == "sw" ? 'stand' : 'back_stand',
+		var animation = m ? this.facingForward(d) ? 'walk' : 'back_walk' : this.facingForward(d) ? 'stand' : 'back_stand',
 			c = decodePoint(x, y);
 		
 		this.flipX = d == "se" || d == "ne";
@@ -85,11 +78,17 @@ class Player extends Phaser.GameObjects.Sprite {
 		this.direction = d
 		
 	}
+	jump(data) {
+		var animation = this.facingForward(data.d) ? 'jump' : 'back_jump';
+		this.flipX = data.d == "se" || data.d == "ne";
+		this.animate(animation, false);
+		
+	}
 
 	update(data) {
 		var d = this.direction,
 			m = false,
-			animation = m ? d == "se" || d == "sw" ? 'walk' : 'back_walk' : d == "se" || d == "sw" ? 'stand' : 'back_stand'
+			animation = m ? this.facingForward(d) ? 'walk' : 'back_walk' : this.facingForward(d) ? 'stand' : 'back_stand'
 	
 		this.flipX = d == "se" || d == "ne";
 		this.skin = data.skin
@@ -115,6 +114,24 @@ class Player extends Phaser.GameObjects.Sprite {
 		this.chat.setVisible(false);
 		this.setActive(false);
 		this.setVisible(false);
+	}
+}
+
+var loadAnimations = function(game) {
+	for (let i = 0; i < assets["skins"]["files"].length; i++) {
+		for (let j = 0; j < assets["skins"]["animations"].length; j++) {
+			game.anims.create({
+				key: assets["skins"]["files"][i]["name"] + assets["skins"]["animations"][j]["name"],
+				frames: !assets["skins"]["animations"][j]["animated"] ? [{
+					key: assets["skins"]["files"][i]["name"],
+					frame: assets["skins"]["animations"][j]["frames"][0]
+				}] : game.anims.generateFrameNumbers(assets["skins"]["files"][i]["name"], {
+					start: assets["skins"]["animations"][j]["frames"][0],
+					end: assets["skins"]["animations"][j]["frames"][1]
+				}),
+				frameRate: 7,
+			});
+		}
 	}
 }
 
@@ -179,6 +196,7 @@ var preload = function() {
 var create = function() {
 	loadAnimations(this)
 	var start = decodePoint(getRandomInt(-config.game.spawn_area, config.game.spawn_area), 0);
+	this.spacebar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 	this.data = {
 		moving: false,
 		was_moving: false,
@@ -194,13 +212,14 @@ var create = function() {
 	this.cursor.setSize(config.sprite.hitbox.width, config.sprite.hitbox.height)
 	this.cursor.setOffset((config.sprite.width - config.sprite.hitbox.width) / 2, config.sprite.height - config.sprite.hitbox.height)
 	this.scene = this
-	createMap(this);
+	//createMap(this);
 
 	var data = this.data,
 		c = encodePoint(this.data.x, this.data.y);
 	data.x = c.x
 	data.y = c.y
 	socket.emit('connected', data);
+
 	
 }
 
@@ -209,30 +228,37 @@ var update = function() {
 		update = false,
 		moving = true,
 		speed = cursors.shift.isDown ? config.game.speed*config.game.speed_multiplier : config.game.speed;
-	if (cursors.left.isDown) {
-		this.data.x = -1
-		this.data.y = -1
-		this.data.d = "nw"
 
-	} else if (cursors.right.isDown) {
-		this.data.x = 1
-		this.data.y = 1
-		this.data.d = "se"
-
-	} else if (cursors.up.isDown) {
-		this.data.x = 1
-		this.data.y = -1
-		this.data.d = "ne"
-
-	} else if (cursors.down.isDown) {
-		this.data.x = -1
-		this.data.y = 1
-		this.data.d = "sw"
-	} else {
+	if (Phaser.Input.Keyboard.JustDown(this.spacebar)) {
+		socket.emit('jump');
+	}
+	if(cursors.left.isDown||cursors.right.isDown||cursors.up.isDown||cursors.down.isDown) {
+		if (cursors.left.isDown) {
+			this.data.x = -1
+			this.data.y = -1
+			this.data.d = "nw"
+	
+		} else if (cursors.right.isDown) {
+			this.data.x = 1
+			this.data.y = 1
+			this.data.d = "se"
+	
+		} 
+		if (cursors.up.isDown) {
+			this.data.x = 1
+			this.data.y = -1
+			this.data.d = "ne"
+	
+		} else if (cursors.down.isDown) {
+			this.data.x = -1
+			this.data.y = 1
+			this.data.d = "sw"
+		}
+	}
+	else {
 		this.data.x = 0
 		this.data.y = 0
 		moving = false;
-		
 	}
 
 	if (moving) {
@@ -270,6 +296,7 @@ const MmoGame = function() {
 			height: config.game.height,
 			parent: 'playsmmo',
 			pixelArt: true,
+			transparent: true,
 			physics: {
 				default: 'arcade',
 				arcade: {
@@ -305,9 +332,13 @@ const MmoGame = function() {
 		}
 	})
 	socket.on("update", function(player) {
-		console.log("UPDATE PLAYER")
 		if(game.players.hasOwnProperty(player["id"])) {
 			game.players[player["id"]].update(player)
+		}
+	})
+	socket.on("jump", function(player) {
+		if(game.players.hasOwnProperty(player["id"])) {
+			game.players[player["id"]].jump(player)
 		}
 	})
 	socket.on("connected", function(data) {

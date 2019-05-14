@@ -41,6 +41,11 @@ export const assets = {
 				"frames": [4, 5]
 			},
 			{
+				"name": "jump",
+				"animated": true,
+				"frames": [4, 5]
+			},
+			{
 				"name": "back_stand",
 				"animated": false,
 				"frames": [0]
@@ -50,6 +55,13 @@ export const assets = {
 				"animated": true,
 				"frames": [1, 2]
 			}
+			,
+			{
+				"name": "back_jump",
+				"animated": true,
+				"frames": [1, 2]
+			}
+			
 		]
 	}
 
