@@ -39,20 +39,15 @@ class Player extends Phaser.GameObjects.Sprite {
 		this.depth = conf.depth
 		this.direction = "sw"
 		this.moveText(conf.x, conf.y, conf.depth)
-
-		/*this.on('animationcomplete', function(animation, frame){
-			console.log(animation.key)
-			if(animation.key.indexOf('jump')!==-1) {
-				console.log("contains")
-				this.animate(this.facingForward(data.d)?'stand':'back_stand', true);
-        	}
-		}, this);*/
-
+		this.animating = false
 	}
 	
 	animate(a,l) {
-		l = typeof l==="undefined"?l=true:l;
-		this.anims.play(this.skin + a, l);
+		if(!this.animating) {
+			l = typeof l==="undefined"?l=true:l;
+			this.anims.play(this.skin + a, l);
+		}
+		
 	}
 	moveText(x, y, depth){
 		this.text.setPosition(x-(this.text.width / 2), y-(config.sprite.height/2)-(this.text.height));
@@ -82,6 +77,11 @@ class Player extends Phaser.GameObjects.Sprite {
 		var animation = this.facingForward(data.d) ? 'jump' : 'back_jump';
 		this.flipX = data.d == "se" || data.d == "ne";
 		this.animate(animation, false);
+		this.animating = true;
+		var t = this
+		setTimeout(function(){
+			t.animating = false
+		}, 500)
 		
 	}
 

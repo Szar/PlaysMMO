@@ -10,6 +10,10 @@ export const assets = {
 	},
 	"skins": {
 		"files": [{
+				"name": "default",
+				"file": require("./assets/sprites/skin_default.png"),
+				"title": "Default",
+			},{
 				"name": "sonic",
 				"file": require("./assets/sprites/skin_sonic.png"),
 				"title": "Sonic",
@@ -33,17 +37,17 @@ export const assets = {
 		"animations": [{
 				"name": "stand",
 				"animated": false,
-				"frames": [3]
+				"frames": [7]
 			},
 			{
 				"name": "walk",
 				"animated": true,
-				"frames": [4, 5]
+				"frames": [8, 9]
 			},
 			{
 				"name": "jump",
 				"animated": true,
-				"frames": [4, 5]
+				"frames": [10, 13], 
 			},
 			{
 				"name": "back_stand",
@@ -59,7 +63,7 @@ export const assets = {
 			{
 				"name": "back_jump",
 				"animated": true,
-				"frames": [1, 2]
+				"frames": [3, 6]
 			}
 			
 		]
