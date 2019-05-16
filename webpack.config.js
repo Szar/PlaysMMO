@@ -76,6 +76,7 @@ module.exports = (_env,argv)=> {
 
   if(argv.mode==='development'){
     config.devServer = {
+	  historyApiFallback: true,
 	  contentBase: path.join(__dirname,'public'),
 	  disableHostCheck: true,
       host: '0.0.0.0',

@@ -6,14 +6,14 @@ export const getRandomInt = function(min, max) {
 	return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-export const decodePoint = function(x, y) {
+export const decodePoint = function(x, y, w, h) {
 	return {
 		x: x + (config.game.width / 2),
 		y: y + (config.game.height / 2)
 	}
 }
 
-export const encodePoint = function(x, y) {
+export const encodePoint = function(x, y, w, h) {
 	return {
 		x: x - (config.game.width / 2),
 		y: y - (config.game.height / 2)
