@@ -29,7 +29,7 @@ export default class View extends React.Component{
 	}
 	componentDidMount(){
 		const t = this,
-			  host = this.props.hasOwnProperty("match") && this.props.match.hasOwnProperty("host")  ? this.props.match.params["host"] : "433552252";
+			  host = this.props.hasOwnProperty("match") && this.props.match.hasOwnProperty("host")  ? this.props.match.params["host"] : "40857689";
 			//host = this.props.location.pathname.substr(1);
 		Mmo.init(host);
 		console.log(host); 

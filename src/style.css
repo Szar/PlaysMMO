@@ -30,6 +30,7 @@ body {
 	font-weight: normal;
 	font-size: 12px;
 	background: transparent;
+	background: url(assets/images/bg.gif) top left repeat;
 
 }
 

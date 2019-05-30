@@ -10,30 +10,43 @@ export const assets = {
 	},
 	"skins": {
 		"files": [{
-				"name": "default",
-				"file": require("./assets/sprites/skin_default.png"),
-				"title": "Default",
-			},{
-				"name": "sonic",
-				"file": require("./assets/sprites/skin_sonic.png"),
-				"title": "Sonic",
-			},
-			{
-				"name": "flamedramon",
-				"file": require("./assets/sprites/skin_flamedramon.png"),
-				"title": "Flamedramon",
-			},
-			{
-				"name": "gabumon",
-				"file": require("./assets/sprites/skin_gabumon.png"),
-				"title": "Gabumon",
-			},
-			{
-				"name": "kuwagamon",
-				"file": require("./assets/sprites/skin_kuwagamon.png"),
-				"title": "Kuwagamon",
-			},
-		],
+			"name": "default",
+			"file": require("./assets/sprites/skin_default.png"),
+			"title": "Default",
+		},{
+			"name": "sonic",
+			"file": require("./assets/sprites/skin_sonic.png"),
+			"title": "Sonic",
+		},{
+			"name": "wolfgang",
+			"file": require("./assets/sprites/skin_wolfgang.png"),
+			"title": "Wolfgang",
+		},{
+			"name": "tarou",
+			"file": require("./assets/sprites/skin_tarou.png"),
+			"title": "Tarou",
+		},
+		{
+			"name": "flamedramon",
+			"file": require("./assets/sprites/skin_flamedramon.png"),
+			"title": "Flamedramon",
+		},
+		{
+			"name": "gabumon",
+			"file": require("./assets/sprites/skin_gabumon.png"),
+			"title": "Gabumon",
+		},
+		{
+			"name": "kuwagamon",
+			"file": require("./assets/sprites/skin_kuwagamon.png"),
+			"title": "Kuwagamon",
+		},
+		{
+			"name": "guest",
+			"file": require("./assets/sprites/skin_guest.png"),
+			"title": "Guest",
+		}
+	],
 		"animations": [{
 				"name": "stand",
 				"animated": false,
